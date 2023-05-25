@@ -117,8 +117,9 @@
     </Link>
     <PostBuildEvent>
       <Command>
-		copy /Y "$(SolutionDir)\Game\dlls\dbghelp_x86.dll" "$(OutDir)dbghelp.dll"
-	  </Command>
+          copy /Y "$(SolutionDir)\Game\dlls\dbghelp_x86.dll" "$(OutDir)dbghelp.dll"
+          copy /Y "$(SolutionDir)\Game\dlls\discord-rpc_x86.dll" "$(OutDir)discord-rpc.dll"
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -174,8 +175,9 @@
     </Link>
     <PostBuildEvent>
       <Command>
-		copy /Y "$(SolutionDir)\Game\dlls\dbghelp_x86.dll" "$(OutDir)dbghelp.dll"
-	  </Command>
+          copy /Y "$(SolutionDir)\Game\dlls\dbghelp_x86.dll" "$(OutDir)dbghelp.dll"
+          copy /Y "$(SolutionDir)\Game\dlls\discord-rpc_x86.dll" "$(OutDir)discord-rpc.dll"
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -227,8 +229,9 @@
     </Link>
     <PostBuildEvent>
       <Command>
-		copy /Y "$(SolutionDir)\Game\dlls\dbghelp_x64.dll" "$(OutDir)dbghelp.dll"
-	  </Command>
+          copy /Y "$(SolutionDir)\Game\dlls\dbghelp_x64.dll" "$(OutDir)dbghelp.dll"
+          copy /Y "$(SolutionDir)\Game\dlls\discord-rpc_x64.dll" "$(OutDir)discord-rpc.dll"
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -284,8 +287,9 @@
     </Link>
     <PostBuildEvent>
       <Command>
-		copy /Y "$(SolutionDir)\Game\dlls\dbghelp_x64.dll" "$(OutDir)dbghelp.dll"
-	  </Command>
+          copy /Y "$(SolutionDir)\Game\dlls\dbghelp_x64.dll" "$(OutDir)dbghelp.dll"
+          copy /Y "$(SolutionDir)\Game\dlls\discord-rpc_x64.dll" "$(OutDir)discord-rpc.dll"
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

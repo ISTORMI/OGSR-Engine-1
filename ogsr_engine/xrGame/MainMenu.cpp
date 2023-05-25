@@ -12,7 +12,7 @@
 #include "ui\UIBtnHint.h"
 #include "UICursor.h"
 #include "string_table.h"
-
+#include "..\xr_3da\DiscordRPC.hpp"
 #include "object_broker.h"
 
 string128 ErrMsgBoxTemplate[] = {"message_box_session_full", "msg_box_error_loading"};
@@ -137,6 +137,11 @@ void CMainMenu::Activate(bool bActivate)
             CCameraManager::ResetPP();
         };
         Device.seqRender.Add(this, 4); // 1-console 2-cursor 3-tutorial
+
+		if (!g_pGameLevel) {
+			Discord.Update("Main Menu");
+			Discord.Set_active_task_text(nullptr);
+		}
     }
     else
     {

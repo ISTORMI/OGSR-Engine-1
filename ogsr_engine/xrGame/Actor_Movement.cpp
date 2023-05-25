@@ -342,7 +342,7 @@ void CActor::g_cl_CheckControls(u32 mstate_wf, Fvector& vControlAccel, float& Ju
         else
             mstate_real &= ~mcSprint;
 
-        if (!(mstate_real & (mcFwd)) || mstate_real & (mcCrouch | mcClimb | mcBack | mcLStrafe | mcRStrafe) || !isActorAccelerated(mstate_wf, IsZoomAimingMode()))
+        if (!(mstate_real & (mcFwd)) || mstate_real & (mcCrouch | mcClimb | mcBack) || !isActorAccelerated(mstate_wf, IsZoomAimingMode()))
         {
             mstate_real &= ~mcSprint;
             mstate_wishful &= ~mcSprint;
@@ -641,7 +641,7 @@ bool CActor::CanRun()
 
 bool CActor::CanSprint()
 {
-    bool can_Sprint = CanAccelerate() && !conditions().IsCantSprint() && CanRun() && !(mstate_real & mcLStrafe || mstate_real & mcRStrafe) && InventoryAllowSprint();
+    bool can_Sprint = CanAccelerate() && !conditions().IsCantSprint() && CanRun() && InventoryAllowSprint();
 
     return can_Sprint;
 }

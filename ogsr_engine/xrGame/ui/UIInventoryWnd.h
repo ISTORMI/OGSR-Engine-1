@@ -135,6 +135,7 @@ protected:
     CUIItemInfo UIItemInfo;
 
     CInventory* m_pInv;
+    std::string m_sStMoneyDescr;
 
 public:
     CUICellItem* m_pCurrentCellItem;

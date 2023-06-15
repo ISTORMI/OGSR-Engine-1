@@ -11,7 +11,6 @@ class ENGINE_API CApplication : public pureFrame, public IEventReceiver
     struct sLevelInfo
     {
         char* folder;
-        char* name;
     };
 
     ILoadingScreen* loadingScreen;

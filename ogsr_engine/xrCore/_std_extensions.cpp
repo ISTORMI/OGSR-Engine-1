@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include <time.h>
+#include <codecvt>
 
 char* timestamp(string64& dest)
 {

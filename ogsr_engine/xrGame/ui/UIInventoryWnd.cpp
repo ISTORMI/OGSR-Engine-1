@@ -49,6 +49,8 @@ CUIInventoryWnd::CUIInventoryWnd()
     m_b_need_update_stats = false;
     m_preinited = false;
     Hide();
+
+    m_sStMoneyDescr = CStringTable().translate("ui_st_money_descr").c_str();
 }
 
 void CUIInventoryWnd::Init()
@@ -309,9 +311,7 @@ void CUIInventoryWnd::Update()
         u32 _money = pOurInvOwner->get_money();
 
         // update money
-        string64 sMoney;
-        sprintf_s(sMoney, "%d RU", _money);
-        UIMoneyWnd.SetText(sMoney);
+        UIMoneyWnd.SetText(std::string(std::to_string((int)_money) + " " + m_sStMoneyDescr).c_str());
 
         if (m_b_need_update_stats)
         {

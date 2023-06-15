@@ -39,13 +39,21 @@ char* xr_strdup(const char* string)
     return memory;
 }
 
-// Очень полезная штука из OpenXRay
-std::string StringToUTF8(const char* in)
+void get_token_id(xr_token* tokens, LPCSTR key,
+                  std::function<void(int)> foundFn,
+                  std::function<void()> notFoundFn)
 {
-	const size_t len = strlen(in);
-	static const std::locale locale{ "" };
-	using wcvt = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>;
-	std::wstring wstr(len, L'\0');
-	std::use_facet<std::ctype<wchar_t>>(locale).widen(in, in + len, wstr.data());
-	return wcvt{}.to_bytes(wstr.data(), wstr.data() + wstr.size());
+    const xr_token* tok = tokens;
+    while (tok->name)
+    {
+        if (stricmp(tok->name, key) == 0)
+        {
+            foundFn(tok->id);
+            return;
+        }
+        tok++;
+    }
+
+    if (notFoundFn)
+        notFoundFn();
 }

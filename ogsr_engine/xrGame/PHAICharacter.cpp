@@ -195,15 +195,6 @@ void CPHAICharacter::InitContact(dContact* c, bool& do_collide,
     {
         b_on_object = true;
         b_valide_wall_contact = false;
-        // Пусть сталкеры сквозь друг друга свободно проходят. Это лучше, чем
-        // когда они упрутся, как бараны, друг в друга и стоят, ногами дрыгают.
-        auto ch1 = static_cast<CPHCharacter*>(D1->ph_object);
-        auto ch2 = static_cast<CPHCharacter*>(D2->ph_object);
-        if ((ch1->RestrictionType() == CPHCharacter::rtStalker ||
-             ch1->RestrictionType() == CPHCharacter::rtStalkerSmall) &&
-            (ch2->RestrictionType() == CPHCharacter::rtStalker ||
-             ch2->RestrictionType() == CPHCharacter::rtStalkerSmall))
-            do_collide = false;
     }
 
 #ifdef DEBUG

@@ -52,7 +52,7 @@ void DiscordRPC::Update(const char* level_name)
 	DiscordRichPresence presenseInfo{};
 
 	presenseInfo.startTimestamp = start_time; //время с момента запуска
-	presenseInfo.largeImageKey = "main_image"; //большая картинка
+	presenseInfo.largeImageKey = "main_image_new"; //большая картинка
 	presenseInfo.smallImageKey = "main_image_small"; //маленькая картинка
 	presenseInfo.smallImageText = Core.GetEngineVersion(); //версия движка на маленькой картинке
 

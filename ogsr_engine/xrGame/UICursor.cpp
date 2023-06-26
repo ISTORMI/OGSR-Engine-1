@@ -15,7 +15,7 @@ void CUICursor::InitInternal()
     m_static = std::make_unique<CUIStatic>();
     m_static->InitTextureEx("ui\\ui_ani_cursor", "hud\\cursor");
 
-    constexpr Frect rect{0.0f, 0.0f, 40.0f, 40.0f};
+    constexpr Frect rect{0.0f, 0.0f, 128.0f, 128.0f};
     m_static->SetOriginalRect(rect);
 
     Fvector2 sz{rect.rb};

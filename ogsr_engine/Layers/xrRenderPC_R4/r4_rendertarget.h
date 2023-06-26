@@ -49,6 +49,7 @@ public:
     IBlender* b_accum_reflected_msaa[8];
     IBlender* b_ssao;
     IBlender* b_ssao_msaa[8];
+    IBlender* b_gasmask_dudv;
 
     // compute shader for hdao
     IBlender* b_hdao_cs;
@@ -202,6 +203,8 @@ private:
     ref_shader s_combine_msaa[8];
     ref_shader s_combine_volumetric;
 
+    ref_shader s_gasmask_dudv;
+
     ref_shader s_rain_drops;
     ref_shader s_night_vision;
 
@@ -315,6 +318,7 @@ public:
     void phase_combine_volumetric();
     void phase_pp();
     void PhaseRainDrops();
+    void phase_gasmask_dudv();
     void PhaseNightVision();
 
     virtual void set_blur(float f) { param_blur = f; }

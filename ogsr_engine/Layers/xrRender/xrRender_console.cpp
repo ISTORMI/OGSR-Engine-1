@@ -61,8 +61,11 @@ constexpr xr_token qsun_quality_token[] = {{"st_opt_low", 0},
 u32 ps_r3_msaa = 0; //	=	0;
 constexpr xr_token qmsaa_token[] = {{"st_opt_off", 0}, {"2x", 1}, {"4x", 2}, {"8x", 3}, {0, 0}};
 
-u32 ps_r3_msaa_atest = 0; //	=	0;
-constexpr xr_token qmsaa__atest_token[] = {{"st_opt_off", 0}, {"st_opt_atest_msaa_dx10_0", 1}, {"st_opt_atest_msaa_dx10_1", 2}, {0, 0}};
+u32 ps_r3_msaa_atest = 2; //	=	0;
+constexpr xr_token qmsaa__atest_token[] = {{"st_opt_off", 0},
+                                           {"st_opt_atest_msaa_dx10_0", 1},
+                                           {"st_opt_atest_msaa_dx10_1", 2},
+                                           {0, 0}};
 
 u32 ps_r3_minmax_sm = 0;
 constexpr xr_token qminmax_sm_token[] = {{"off", 0}, {"on", 1}, {"auto", 2}, {"autodetect", 3}, {0, 0}};
@@ -128,13 +131,17 @@ float ps_r2_ssaLOD_A = 64.f;
 float ps_r2_ssaLOD_B = 48.f;
 
 // R2-specific
-Flags32 ps_r2_ls_flags = {R2FLAG_SUN
-                          //| R2FLAG_SUN_IGNORE_PORTALS
-                          | R2FLAG_EXP_DONT_TEST_UNSHADOWED | R2FLAG_USE_NVSTENCIL | R2FLAG_EXP_SPLIT_SCENE | R2FLAG_EXP_MT_CALC | R3FLAG_DYN_WET_SURF |
-                          R3FLAG_VOLUMETRIC_SMOKE
-                          //| R3FLAG_MSAA
-                          | R3FLAG_MSAA_OPT | R3FLAG_GBUFFER_OPT | R2FLAG_DETAIL_BUMP | R2FLAG_DOF | R2FLAG_SOFT_PARTICLES | R2FLAG_SOFT_WATER | R2FLAG_STEEP_PARALLAX |
-                          R2FLAG_SUN_FOCUS | R2FLAG_SUN_TSM | R2FLAG_TONEMAP | R2FLAG_VOLUMETRIC_LIGHTS}; // r2-only
+Flags32 ps_r2_ls_flags = {
+    R2FLAG_SUN
+    //| R2FLAG_SUN_IGNORE_PORTALS
+    | R2FLAG_EXP_DONT_TEST_UNSHADOWED | R2FLAG_USE_NVSTENCIL |
+    R2FLAG_EXP_SPLIT_SCENE | R2FLAG_EXP_MT_CALC | R3FLAG_DYN_WET_SURF |
+    R3FLAG_VOLUMETRIC_SMOKE
+    //| R3FLAG_MSAA
+    | R3FLAG_MSAA_OPT | R3FLAG_GBUFFER_OPT | R2FLAG_DETAIL_BUMP | R2FLAG_DOF |
+    R2FLAG_SOFT_PARTICLES | R2FLAG_SOFT_WATER | R2FLAG_STEEP_PARALLAX |
+    R2FLAG_SUN_FOCUS | R2FLAG_SUN_TSM | R2FLAG_TONEMAP |
+    R2FLAG_VOLUMETRIC_LIGHTS}; // r2-only
 
 Flags32 ps_r2_ls_flags_ext = {
     /*R2FLAGEXT_SSAO_OPT_DATA |*/ R2FLAGEXT_SSAO_HALF_DATA | R2FLAGEXT_ENABLE_TESSELLATION | R2FLAGEXT_RAIN_DROPS | R2FLAGEXT_RAIN_DROPS_CONTROL | R2FLAGEXT_FLARES_CONTROL};
@@ -197,12 +204,10 @@ Fvector3 ps_r2_dof = Fvector3().set(-1.25f, 1.4f, 600.f);
 float ps_r2_dof_sky = 30; //	distance to sky
 float ps_r2_dof_kernel_size = 5.0f; //	7.0f
 
-int ps_r3_dyn_wet_surf_opt = 1;
-float ps_r3_dyn_wet_surf_near = 5.f; // 10.0f
-float ps_r3_dyn_wet_surf_far = 20.f; // 30.0f
+float ps_r3_dyn_wet_surf_near = 10.0f;
+float ps_r3_dyn_wet_surf_far = 30.0f;
 
 int ps_r3_dyn_wet_surf_sm_res = 1024; // 256
-int ps_r3_dyn_wet_surf_enable_streaks = 0;
 
 float ps_r2_rain_drops_intensity = 0.00025f;
 float ps_r2_rain_drops_speed = 1.25f;
@@ -938,21 +943,21 @@ void xrRender_initconsole()
 #endif //	DEBUG
 #endif //	(RENDER == R_R3) || (RENDER == R_R4)
 
-    CMD3(CCC_Mask, "r3_dynamic_wet_surfaces", &ps_r2_ls_flags, R3FLAG_DYN_WET_SURF);
-    CMD4(CCC_Integer, "r3_dynamic_wet_surfaces_sm_res", &ps_r3_dyn_wet_surf_sm_res, 64, 2048);
-    CMD4(CCC_Integer, "r3_dynamic_wet_surfaces_enable_streaks", &ps_r3_dyn_wet_surf_enable_streaks, 0, 1);
+    CMD3(CCC_Mask, "r3_dynamic_wet_surfaces", &ps_r2_ls_flags,
+         R3FLAG_DYN_WET_SURF);
+    CMD4(CCC_Float, "r3_dynamic_wet_surfaces_near", &ps_r3_dyn_wet_surf_near,
+         10, 70);
+    CMD4(CCC_Float, "r3_dynamic_wet_surfaces_far", &ps_r3_dyn_wet_surf_far, 30,
+         100);
+    CMD4(CCC_Integer, "r3_dynamic_wet_surfaces_sm_res",
+         &ps_r3_dyn_wet_surf_sm_res, 64, 2048);
 
-#if 0 // KRodin: оно странно выглядит, поэтому выключаю. Чтоб нормально выглядело надо уметь настраивать near/far. Но лучше не разрешать это крутить, во избежание. А то накрутят
-      // себе...
-	CMD4(CCC_Integer, "r3_dynamic_wet_surfaces_opt", &ps_r3_dyn_wet_surf_opt, 0, 1);
-	CMD4(CCC_Float, "r3_dynamic_wet_surfaces_near", &ps_r3_dyn_wet_surf_near, 5, 70);
-	CMD4(CCC_Float,		"r3_dynamic_wet_surfaces_far",	&ps_r3_dyn_wet_surf_far,	20,	100		);
-#endif
-
-    CMD3(CCC_Mask, "r3_volumetric_smoke", &ps_r2_ls_flags, R3FLAG_VOLUMETRIC_SMOKE);
+    CMD3(CCC_Mask, "r3_volumetric_smoke", &ps_r2_ls_flags,
+         R3FLAG_VOLUMETRIC_SMOKE);
     CMD1(CCC_memory_stats, "render_memory_stats");
 
-    //	CMD3(CCC_Mask,		"r2_sun_ignore_portals",		&ps_r2_ls_flags,			R2FLAG_SUN_IGNORE_PORTALS);
+    //	CMD3(CCC_Mask,		"r2_sun_ignore_portals",		&ps_r2_ls_flags,
+    // R2FLAG_SUN_IGNORE_PORTALS);
 
     tw_min.set(0.f, 0.f, 0.f);
     tw_max.set(10.f, 10.f, 10.f);

@@ -27,6 +27,7 @@ XRSOUND_API extern float psSoundVMusic;
 XRSOUND_API extern float psSoundRolloff;
 XRSOUND_API extern float psSoundOcclusionScale;
 XRSOUND_API extern float psSoundOcclusionMtl;
+XRSOUND_API extern float psSoundOcclusionHf;
 XRSOUND_API extern float psSoundFadeSpeed;
 XRSOUND_API extern Flags32 psSoundFlags;
 XRSOUND_API extern int psSoundTargets;
@@ -266,7 +267,8 @@ class XRSOUND_API CSound_manager_interface
 
 protected:
     friend class ref_sound_data;
-    virtual void _create_data(ref_sound_data& S, LPCSTR fName, esound_type sound_type, int game_type) = 0;
+    virtual void _create_data(ref_sound_data& S, LPCSTR fName,
+                              esound_type sound_type, int game_type) = 0;
     virtual void _destroy_data(ref_sound_data& S) = 0;
 
 public:
@@ -313,6 +315,8 @@ public:
 
     virtual void object_relcase(CObject* obj) = 0;
     virtual const Fvector& listener_position() = 0;
+
+    virtual bool Loaded(LPCSTR fName) = 0;
 };
 
 class CSound_manager_interface;

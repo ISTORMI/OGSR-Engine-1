@@ -139,7 +139,7 @@ void CMainMenu::Activate(bool bActivate)
         Device.seqRender.Add(this, 4); // 1-console 2-cursor 3-tutorial
 
 		if (!g_pGameLevel) {
-			Discord.Update("Головне меню");
+			Discord.Update("Main Menu");
 			Discord.Set_active_task_text(nullptr);
 		}
     }

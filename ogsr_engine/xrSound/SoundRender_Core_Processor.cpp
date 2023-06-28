@@ -18,7 +18,8 @@ CSoundRender_Emitter* CSoundRender_Core::i_play(ref_sound* S, BOOL _loop,
     return E;
 }
 
-void CSoundRender_Core::update(const Fvector& P, const Fvector& D, const Fvector& N)
+void CSoundRender_Core::update(const Fvector& P, const Fvector& D,
+                               const Fvector& N)
 {
     u32 it;
 
@@ -46,7 +47,9 @@ void CSoundRender_Core::update(const Fvector& P, const Fvector& D, const Fvector
             E->marker = s_emitters_u;
             E = T->get_emitter(); // update can stop itself
             if (E)
+            {
                 T->priority = E->priority();
+            }
             else
                 T->priority = -1;
         }
@@ -88,7 +91,7 @@ void CSoundRender_Core::update(const Fvector& P, const Fvector& D, const Fvector
             // Has emmitter, maybe just not started rendering
             if (T->get_Rendering())
             {
-                /*if	(PU == it)*/ T->fill_parameters();
+                /*if	(PU == it)*/ T->fill_parameters(filter);
                 T->update();
             }
             else
@@ -100,9 +103,11 @@ void CSoundRender_Core::update(const Fvector& P, const Fvector& D, const Fvector
     if (!s_targets_defer.empty())
     {
         // Msg	("! update: start render - commit");
-        s_targets_defer.erase(std::unique(s_targets_defer.begin(), s_targets_defer.end()), s_targets_defer.end());
+        s_targets_defer.erase(
+            std::unique(s_targets_defer.begin(), s_targets_defer.end()),
+            s_targets_defer.end());
         for (it = 0; it < s_targets_defer.size(); it++)
-            s_targets_defer[it]->fill_parameters();
+            s_targets_defer[it]->fill_parameters(filter);
     }
 
     // update EAX or EFX
@@ -202,39 +207,46 @@ void CSoundRender_Core::statistic(CSound_stats* dest, CSound_stats_ext* ext)
     }
 }
 
-float CSoundRender_Core::get_occlusion_to(const Fvector& hear_pt, const Fvector& snd_pt, float dispersion)
+float CSoundRender_Core::get_occlusion_to(const Fvector& hear_pt,
+                                          const Fvector& snd_pt,
+                                          float dispersion)
 {
     Occ occ;
     return calc_occlusion(hear_pt, snd_pt, dispersion, &occ);
 }
 
-float CSoundRender_Core::get_occlusion(const Fvector& P, float R, Occ* occ)
+float CSoundRender_Core::get_occlusion(const Fvector& P, float R, Occ* occ,
+                                       CSoundRender_Emitter* E)
 {
-    return calc_occlusion(listener_position(), P, R, occ);
+    return calc_occlusion(listener_position(), P, R, occ, E);
 }
 
 float CSoundRender_Core::calc_occlusion(const Fvector& base, const Fvector& P,
-                                        float R, Occ* occ)
+                                        float R, Occ* occ,
+                                        CSoundRender_Emitter* E)
 {
+    if (occ->lastFrame == s_emitters_u)
+        return occ->occ_value;
     float occ_value = 1.f;
 
     // Calculate RAY params
-    Fvector pos, dir;
-    float range;
-    pos.random_dir();
-    pos.mul(R);
-    pos.add(P);
-    dir.sub(pos, base);
-    range = dir.magnitude();
+    Fvector pos = P, dir;
+    // pos.random_dir();
+    // pos.mul(R);
+    // pos.add(P);
+    dir.sub(base, pos);
+    float range = dir.magnitude();
     dir.div(range);
 
     if (0 != geom_MODEL)
     {
+        occ->lastFrame = s_emitters_u;
         bool bNeedFullTest = true;
+
         // 1. Check cached polygon
         float _u, _v, _range;
         if (occ->valid &&
-            CDB::TestRayTri(base, dir, occ->occ, _u, _v, _range, false))
+            CDB::TestRayTri(pos, dir, occ->occ, _u, _v, _range, false))
         {
             if (_range > 0 && _range < range)
             {
@@ -246,60 +258,102 @@ float CSoundRender_Core::calc_occlusion(const Fvector& base, const Fvector& P,
         // 2. Polygon doesn't picked up - real database query
         if (bNeedFullTest)
         {
-            occ->valid = false;
-            geom_DB.ray_options(CDB::OPT_CULL);
-            geom_DB.ray_query(geom_MODEL, base, dir, range);
-            if (0 != geom_DB.r_count())
+            // Проверяем препятствие в направлении от звука к камере
+            occ_value = occRayTestMtl(pos, dir, range, occ, E);
+            if (occ->checkReverse && occ_value < 1.f)
             {
-                for (size_t i = 0; i < geom_DB.r_count(); i++)
-                {
-                    CDB::RESULT* R = geom_DB.r_begin() + i;
-                    const CDB::TRI& T = geom_MODEL->get_tris()[R->id];
-                    u16 material_idx = T.material;
-                    SGameMtl* mtl = get_material(material_idx);
-                    if (!mtl->Flags.test(SGameMtl::flPassable |
-                                         SGameMtl::flPickable))
-                        occ_value *= psSoundOcclusionScale;
-
-                    if (psSoundOcclusionMtl > 0.f &&
-                        mtl->fSndOcclusionFactor < 1.f)
-                        occ_value = occ_value * (1.f - psSoundOcclusionMtl) +
-                            occ_value * psSoundOcclusionMtl *
-                                mtl->fSndOcclusionFactor;
-
-                    if (!occ->valid)
-                    {
-                        const Fvector* V = geom_MODEL->get_verts();
-                        occ->occ[0].set(V[T.verts[0]]);
-                        occ->occ[1].set(V[T.verts[1]]);
-                        occ->occ[2].set(V[T.verts[2]]);
-                        occ->valid = true;
-                    }
-
-                    if (fis_zero(occ_value))
-                        break;
-                }
-                occ->occ_value = occ_value;
+                // Проверяем препятствие в обратном направлении, от камеры к
+                // звуку и выбираем максимальное поглощение звука из этой и
+                // предыдущей проверок. Бывают ситуации, когда на локации в
+                // прямом и обратном направлениях находятся материалы с разными
+                // fSndOcclusionFactor.
+                Fvector reverseDir;
+                reverseDir.sub(pos, base).normalize();
+                Occ reverseOcc;
+                float reverseVal =
+                    occRayTestMtl(base, reverseDir, range, &reverseOcc, E);
+                if (reverseVal < occ_value)
+                    occ_value = reverseVal;
             }
+            occ->occ_value = occ_value;
         }
     }
 
     if (0 != geom_SOM && !fis_zero(occ_value))
-    {
-        geom_DB.ray_options(CDB::OPT_CULL);
-        geom_DB.ray_query(geom_SOM, base, dir, range);
-        u32 r_cnt = u32(geom_DB.r_count());
-        CDB::RESULT* _B = geom_DB.r_begin();
+        occ_value *= occRayTestSom(pos, dir, range);
 
-        if (0 != r_cnt)
+    return occ_value;
+}
+
+float CSoundRender_Core::occRayTestMtl(const Fvector& pos, const Fvector& dir,
+                                       float range, Occ* occ,
+                                       CSoundRender_Emitter* E)
+{
+    float occ_value = 1.f;
+    occ->valid = false;
+
+    geom_DB.ray_options(CDB::OPT_CULL);
+    geom_DB.ray_query(geom_MODEL, pos, dir, range);
+
+    if (geom_DB.r_count() > 0)
+    {
+        for (size_t i = 0; i < geom_DB.r_count(); i++)
         {
-            for (u32 k = 0; k < r_cnt; k++)
+            CDB::RESULT* R = geom_DB.r_begin() + i;
+            const CDB::TRI& T = geom_MODEL->get_tris()[R->id];
+            if (!occ->valid)
             {
-                CDB::RESULT* R = _B + k;
-                occ_value *= *(float*)&R->dummy;
-                if (fis_zero(occ_value))
-                    break;
+                const Fvector* V = geom_MODEL->get_verts();
+                occ->occ[0].set(V[T.verts[0]]);
+                occ->occ[1].set(V[T.verts[1]]);
+                occ->occ[2].set(V[T.verts[2]]);
+                occ->valid = true;
             }
+            // Если `pos` находится на поверхности, то из-за ограничений float,
+            // точка может оказаться как за поверхностью, так и перед ней, ведь
+            // поверхности в игре не имеют толщины. Поэтому будем сравнивать
+            // расстояние до пересечения с расстоянием до `pos`, с точностью
+            // 0.01. Если совпало, не будет засчитывать это пересечение. Будем
+            // считать, что точка находится перед поверхность и это пересечение
+            // не должно менять звук.
+            if (fsimilar(R->range, range, 0.01f))
+                continue;
+            u16 material_idx = T.material;
+            SGameMtl* mtl = get_material(material_idx);
+            if (mtl->fSndOcclusionFactor < 1.f)
+            {
+                if (fis_zero(mtl->fSndOcclusionFactor))
+                    occ_value = 0.f;
+                else
+                    occ_value *= mtl->fSndOcclusionFactor;
+            }
+
+            if (fis_zero(occ_value))
+                break;
+        }
+    }
+
+    return occ_value;
+}
+
+float CSoundRender_Core::occRayTestSom(const Fvector& pos, const Fvector& dir,
+                                       float range)
+{
+    float occ_value = 1.f;
+
+    geom_DB.ray_options(0);
+    geom_DB.ray_query(geom_SOM, pos, dir, range);
+    u32 r_cnt = u32(geom_DB.r_count());
+    CDB::RESULT* _B = geom_DB.r_begin();
+
+    if (r_cnt > 0)
+    {
+        for (u32 k = 0; k < r_cnt; k++)
+        {
+            CDB::RESULT* R = _B + k;
+            occ_value *= *(float*)&R->dummy;
+            if (fis_zero(occ_value))
+                break;
         }
     }
 

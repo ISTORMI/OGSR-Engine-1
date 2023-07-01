@@ -183,6 +183,10 @@ public:
     SoundVec CollideSounds;
     PSVec CollideParticles;
 
+    std::vector<std::string> BreakingSoundNames;
+    std::vector<std::string> StepSoundNames;
+    std::vector<std::string> CollideSoundNames;
+
 #ifdef GM_NON_GAME
 #define ShaderVec shared_str
     ShaderVec CollideMarks;
@@ -196,8 +200,10 @@ public:
     PropValue* propCollideParticles;
     PropValue* propCollideMarks;
     void __stdcall OnFlagChange(PropValue* sender);
-    void __stdcall OnParentClick(ButtonValue* sender, bool& bModif, bool& bSafe);
-    void __stdcall OnCommandClick(ButtonValue* sender, bool& bModif, bool& bSafe);
+    void __stdcall OnParentClick(ButtonValue* sender, bool& bModif,
+                                 bool& bSafe);
+    void __stdcall OnCommandClick(ButtonValue* sender, bool& bModif,
+                                  bool& bSafe);
     void __stdcall FillChooseMtl(ChooseItemVec& items, void* param);
     void CopyFrom(SGameMtlPair* parent);
 #endif
@@ -223,14 +229,20 @@ public:
         mtl0 = m0;
         mtl1 = m1;
     }
-    IC bool IsPair(int m0, int m1) { return !!(((mtl0 == m0) && (mtl1 == m1)) || ((mtl0 == m1) && (mtl1 == m0))); }
+    IC bool IsPair(int m0, int m1)
+    {
+        return !!(((mtl0 == m0) && (mtl1 == m1)) ||
+                  ((mtl0 == m1) && (mtl1 == m0)));
+    }
     void Save(IWriter& fs);
     void Load(IReader& fs);
     IC int GetParent() { return ID_parent; }
     BOOL SetParent(int parent);
-    //#ifdef DEBUG
+    // #ifdef DEBUG
     LPCSTR dbg_Name();
-    //#endif
+    // #endif
+
+    void CreateAllSounds();
 };
 
 DEFINE_VECTOR(SGameMtlPair*, GameMtlPairVec, GameMtlPairIt);
@@ -265,10 +277,12 @@ public:
         material_count = 0;
         material_pairs_rt.clear();
 #endif
-        for (GameMtlIt m_it = materials.begin(); materials.end() != m_it; ++m_it)
+        for (GameMtlIt m_it = materials.begin(); materials.end() != m_it;
+             ++m_it)
             xr_delete(*m_it);
         materials.clear();
-        for (GameMtlPairIt p_it = material_pairs.begin(); material_pairs.end() != p_it; ++p_it)
+        for (GameMtlPairIt p_it = material_pairs.begin();
+             material_pairs.end() != p_it; ++p_it)
             xr_delete(*p_it);
         material_pairs.clear();
     }
@@ -315,7 +329,10 @@ public:
     }
 #else
     // game
-    IC SGameMtl* GetMaterialByID(s32 id) { return GetMaterialByIdx(GetMaterialIdx(id)); }
+    IC SGameMtl* GetMaterialByID(s32 id)
+    {
+        return GetMaterialByIdx(GetMaterialIdx(id));
+    }
 #endif
     IC u16 GetMaterialIdx(int ID)
     {
@@ -370,6 +387,9 @@ public:
     // IO routines
     void Load();
     bool Save();
+
+private:
+    void loadSounds();
 };
 
 #define GET_RANDOM(a_vector) (a_vector[Random.randI(a_vector.size())])

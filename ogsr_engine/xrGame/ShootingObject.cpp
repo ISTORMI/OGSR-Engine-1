@@ -500,5 +500,6 @@ void CShootingObject::FireEnd() { bWorking = false; }
 void CShootingObject::StartShotParticles()
 {
     CParticlesObject* pSmokeParticles = NULL;
-    StartParticles(pSmokeParticles, *m_sShotParticles, m_vCurrentShootPos, m_vCurrentShootDir, true);
+    StartParticles(pSmokeParticles, *m_sShotParticles, m_vCurrentShootPos,
+                   m_vCurrentShootDir, true);
 }

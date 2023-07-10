@@ -807,4 +807,7 @@ bool CWeaponMagazinedWGrenade::IsNecessaryItem(const shared_str& item_sect)
             std::find(m_ammoTypes2.begin(), m_ammoTypes2.end(), item_sect) != m_ammoTypes2.end());
 }
 
-float CWeaponMagazinedWGrenade::Weight() const { return inherited::Weight() + GetMagazineWeight(m_magazine2); }
+float CWeaponMagazinedWGrenade::Weight() const
+{
+    return inherited::Weight() + GetMagazineWeight(m_magazine2);
+}

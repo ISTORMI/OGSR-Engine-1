@@ -6,6 +6,7 @@
 #include "rain.h"
 
 #include "IGame_Level.h"
+#include "igame_persistent.h"
 #include "../COMMON_AI/object_broker.h"
 #include "../COMMON_AI/LevelGameDef.h"
 #include <execution>
@@ -133,6 +134,7 @@ CEnvAmbient::SEffect* CEnvAmbient::create_effect(CInifile& config, LPCSTR id)
     result->life_time = iFloor(config.r_float(id, "life_time") * 1000.f);
     result->particles = config.r_string(id, "particles");
     VERIFY(result->particles.size());
+    g_pGamePersistent->CreateAmbientParticle(result);
     result->offset = config.r_fvector3(id, "offset");
     result->wind_gust_factor = config.r_float(id, "wind_gust_factor");
 
@@ -695,6 +697,13 @@ void CEnvironment::load_level_specific_ambients()
                 if (eff->soundName.size())
                     effects.push_back(eff);
         }
+        else
+        {
+            // Все партиклы были уничтожены в `Disconnect`, поэтому нужно их
+            // пересоздать.
+            for (auto& eff : ambient->effects())
+                g_pGamePersistent->CreateAmbientParticle(eff);
+        }
     }
 
     if (snd_channels.size())
@@ -953,8 +962,8 @@ void CEnvironment::loadAmbientSounds()
     // Загрузим все звуки всех амбиентов параллельно
     std::vector<CEnvAmbient::SSndChannel*> snd_channels;
     for (auto& amb : Ambients)
-        for (auto& ch : amb->get_snd_channels())
-            snd_channels.push_back(ch);
+        snd_channels.insert(snd_channels.end(), amb->get_snd_channels().begin(),
+                            amb->get_snd_channels().end());
     loadAmbientSounds(snd_channels);
 }
 

@@ -139,6 +139,7 @@ public:
     void cNameSect_set(shared_str N);
     ICF shared_str cNameVisual() const { return NameVisual; }
     void cNameVisual_set(shared_str N);
+    virtual bool VisualCanBePrefetched() { return true; }
     virtual shared_str shedule_Name() const { return cName(); };
     ICF LPCSTR Name_script() const { return NameObject.c_str(); }
 
@@ -166,6 +167,7 @@ public:
 
     virtual void Load(LPCSTR section);
     virtual void reload(LPCSTR section){};
+    virtual void PrefetchEnd(){};
 
     // Update
     virtual void shedule_Update(u32 dt); // Called by sheduler

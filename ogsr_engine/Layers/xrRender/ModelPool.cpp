@@ -30,7 +30,6 @@
 
 CInifile* vis_prefetch = nullptr;
 bool now_prefetch1 = false;
-bool now_prefetch2 = false;
 
 dxRender_Visual* CModelPool::Instance_Create(u32 type)
 {
@@ -231,12 +230,14 @@ dxRender_Visual* CModelPool::Instance_Find(LPCSTR N)
     return Model;
 }
 
-dxRender_Visual* CModelPool::Create(const char* name, IReader* data)
+dxRender_Visual* CModelPool::Create(const char* name, IReader* data,
+                                    bool canBePrefetched)
 {
 #ifdef _EDITOR
     if (!name || !name[0])
         return 0;
 #endif
+
     string_path low_name;
     VERIFY(xr_strlen(name) < sizeof(low_name));
     xr_strcpy(low_name, name);
@@ -254,7 +255,8 @@ dxRender_Visual* CModelPool::Create(const char* name, IReader* data)
         Model->Spawn();
         Pool.erase(it);
 
-        refresh_prefetch(low_name);
+        if (now_prefetch1 || canBePrefetched)
+            refreshPrefetchModel(low_name);
 
         return Model;
     }
@@ -281,30 +283,33 @@ dxRender_Visual* CModelPool::Create(const char* name, IReader* data)
         dxRender_Visual* Model = Instance_Duplicate(Base);
         Registry.insert(mk_pair(Model, low_name));
 
-        refresh_prefetch(low_name);
+        if (now_prefetch1 || canBePrefetched)
+            refreshPrefetchModel(low_name);
 
         return Model;
     }
 }
 
-void CModelPool::refresh_prefetch(LPCSTR low_name)
+void CModelPool::refreshPrefetchModel(LPCSTR low_name)
 {
-    if (now_prefetch2)
-        return;
+    refreshPrefetchSect("prefetch", low_name, [](std::string lowName) -> bool {
+        shared_str fname;
+        return !!FS.exist("$game_meshes$",
+                          *fname.sprintf("%s.ogf", lowName.c_str()));
+    });
+}
 
-    std::string s(low_name);
-    if (m_prefetched.find(s) != m_prefetched.end())
+void CModelPool::refreshPrefetchSect(
+    const std::string sectName, const std::string lowName,
+    const std::function<bool(std::string fn)> testFn)
+{
+    if (m_prefetched.find(lowName) != m_prefetched.end())
         return;
 
     if (now_prefetch1)
-        m_prefetched.emplace(s, true);
-    else if (vis_prefetch)
-    {
-        shared_str fname;
-        bool is_global = !!FS.exist("$game_meshes$", *fname.sprintf("%s.ogf", low_name));
-        if (is_global)
-            vis_prefetch->w_float("prefetch", low_name, 1.f);
-    }
+        m_prefetched.emplace(lowName, true);
+    else if (vis_prefetch && testFn && testFn(lowName))
+        vis_prefetch->w_float(sectName.c_str(), lowName.c_str(), 1.f);
 }
 
 dxRender_Visual* CModelPool::CreateChild(LPCSTR name, IReader* data)
@@ -438,32 +443,54 @@ void CModelPool::Discard(dxRender_Visual*& V, BOOL b_complete)
 void CModelPool::Prefetch()
 {
     Logging(FALSE);
-    begin_prefetch1(true);
 
-    // prefetch visuals
-    string256 section;
-    strconcat(sizeof(section), section, "prefetch_visuals_", g_pGamePersistent->m_game_params.m_game_type);
-    CInifile::Sect& sect = pSettings->r_section(section);
     CTimer timer;
     timer.Start();
-    u32 cnt = 0;
+
+    prefetchVisuals();
+    if (vis_prefetch)
+        prefetchModels();
+
+    Msg("* [%s]: all prefetching time: [%.3f s.]", __FUNCTION__,
+        timer.GetElapsed_sec());
+
+    Logging(TRUE);
+}
+
+void CModelPool::prefetchVisuals()
+{
+    // prefetch visuals
+    string256 section;
+    strconcat(sizeof(section), section, "prefetch_visuals_",
+              g_pGamePersistent->m_game_params.m_game_type);
+    CInifile::Sect& sect = pSettings->r_section(section);
+
+    CTimer timer;
+    timer.Start();
+
+    begin_prefetch1(true);
     for (auto I = sect.Data.begin(); I != sect.Data.end(); I++)
     {
         const CInifile::Item& item = *I;
         dxRender_Visual* V = Create(item.first.c_str());
         Delete(V, FALSE);
-        cnt++;
     }
     begin_prefetch1(false);
 
-    if (!vis_prefetch || !vis_prefetch->section_exist("prefetch"))
-    {
-        Msg("[%s] models prefetching time (%zi): [%.2f s.]", __FUNCTION__, cnt, timer.GetElapsed_sec());
-        return;
-    }
+    Msg("* [%s]: [%s] prefetching time (%u): [%.3f s.]", __FUNCTION__, section,
+        sect.Data.size(), timer.GetElapsed_sec());
+}
 
-    now_prefetch2 = true;
-    sect = vis_prefetch->r_section("prefetch");
+void CModelPool::prefetchModels()
+{
+    if (!vis_prefetch->section_exist("prefetch"))
+        return;
+
+    CTimer timer;
+    timer.Start();
+
+    const auto& sect = vis_prefetch->r_section("prefetch");
+    u32 cnt = 0;
     for (const auto& it : sect.Data)
     {
         const shared_str& low_name = it.first;
@@ -475,15 +502,16 @@ void CModelPool::Prefetch()
             {
                 dxRender_Visual* V = Create(low_name.c_str());
                 Delete(V, FALSE);
+                cnt++;
             }
             else
-                Msg("! [%s]: %s not found in $game_meshes$", __FUNCTION__, fname.c_str());
+                Msg("! [%s]: %s not found in $game_meshes$", __FUNCTION__,
+                    fname.c_str());
         }
     }
 
-    now_prefetch2 = false;
-    Logging(TRUE);
-    Msg("[%s] models prefetching time (%zi): [%.2f s.]", __FUNCTION__, cnt, timer.GetElapsed_sec());
+    Msg("* [%s]: [prefetch] prefetching time (%u): [%.3f s.]", __FUNCTION__,
+        cnt, timer.GetElapsed_sec());
 }
 
 void CModelPool::ClearPool(BOOL b_complete)
@@ -493,7 +521,8 @@ void CModelPool::ClearPool(BOOL b_complete)
         if (!b_complete && vis_prefetch)
         {
             std::string s(I.first.c_str());
-            if (m_prefetched.find(s) == m_prefetched.end() && !vis_prefetch->line_exist("prefetch", I.first.c_str()))
+            if (m_prefetched.find(s) == m_prefetched.end() &&
+                !vis_prefetch->line_exist("prefetch", I.first.c_str()))
                 b_complete = TRUE;
         }
         Discard(I.second, b_complete);
@@ -503,14 +532,16 @@ void CModelPool::ClearPool(BOOL b_complete)
 
 dxRender_Visual* CModelPool::CreatePE(PS::CPEDef* source)
 {
-    PS::CParticleEffect* V = (PS::CParticleEffect*)Instance_Create(MT_PARTICLE_EFFECT);
+    PS::CParticleEffect* V =
+        (PS::CParticleEffect*)Instance_Create(MT_PARTICLE_EFFECT);
     V->Compile(source);
     return V;
 }
 
 dxRender_Visual* CModelPool::CreatePG(PS::CPGDef* source)
 {
-    PS::CParticleGroup* V = (PS::CParticleGroup*)Instance_Create(MT_PARTICLE_GROUP);
+    PS::CParticleGroup* V =
+        (PS::CParticleGroup*)Instance_Create(MT_PARTICLE_GROUP);
     V->Compile(source);
     return V;
 }
@@ -740,25 +771,30 @@ void CModelPool::save_vis_prefetch()
     }
 }
 
-void CModelPool::process_vis_prefetch()
+void CModelPool::process_vis_prefetch() { processPrefetchSect("prefetch"); }
+
+void CModelPool::processPrefetchSect(const std::string sectName)
 {
-    if (!vis_prefetch->section_exist("prefetch"))
+    if (!vis_prefetch->section_exist(sectName.c_str()))
         return;
-    auto& sect = vis_prefetch->r_section("prefetch");
+
     std::vector<std::string> expired;
+    auto& sect = vis_prefetch->r_section(sectName.c_str());
     for (auto& it : sect.Data)
     {
-        float need = (float)atof(it.second.c_str()) * 0.5f; // делить пополам
+        std::string s{it.second.c_str()};
+        float need = std::stof(s) * 0.5f; // делить пополам
         // -0.5..+0.5 - добавить случайность, чтобы не было общего выключения
         float rnd = Random.randF() - 0.5f;
         float val = need + rnd * 0.1f;
         if (val > 0.1f)
-            vis_prefetch->w_float("prefetch", it.first.c_str(), val);
+            vis_prefetch->w_float(sectName.c_str(), it.first.c_str(), val);
         else
             expired.emplace_back(it.first.c_str());
     }
+
     for (const auto& s : expired)
-        vis_prefetch->remove_line("prefetch", s.c_str());
+        vis_prefetch->remove_line(sectName.c_str(), s.c_str());
 }
 
 void CModelPool::begin_prefetch1(bool val) { now_prefetch1 = val; }

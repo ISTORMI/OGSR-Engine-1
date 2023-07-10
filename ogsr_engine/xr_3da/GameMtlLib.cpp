@@ -3,7 +3,7 @@
 #pragma hdrstop
 
 #include "GameMtlLib.h"
-//#include "../include/xrapi/xrapi.h"
+// #include "../include/xrapi/xrapi.h"
 #include <execution>
 
 CGameMtlLibrary GMLib;
@@ -147,6 +147,7 @@ void CGameMtlLibrary::Load()
             }
         }
         OBJ->close();
+
         loadSounds();
     }
 
@@ -212,7 +213,8 @@ SGameMtlPair* CGameMtlLibrary::GetMaterialPair(u16 idx0, u16 idx1)
     // R_ASSERT( ( idx0 < material_count ) && ( idx1 < material_count ) );
     if (idx0 >= material_count || idx1 >= material_count)
     {
-        MsgDbg("! [%s]: wrong index(es): idx0[%u] idx1[%u] material_count[%u]", __FUNCTION__, idx0, idx1, material_count);
+        MsgDbg("! [%s]: wrong index(es): idx0[%u] idx1[%u] material_count[%u]",
+               __FUNCTION__, idx0, idx1, material_count);
         if (idx0 >= material_count)
             idx0 = 0;
         if (idx1 >= material_count)

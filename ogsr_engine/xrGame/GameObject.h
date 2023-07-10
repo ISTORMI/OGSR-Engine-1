@@ -104,7 +104,10 @@ public:
 
 public:
     virtual BOOL feel_touch_on_contact(CObject*) { return TRUE; }
-    virtual bool use(CGameObject* who_use) { return CUsableScriptObject::use(who_use); };
+    virtual bool use(CGameObject* who_use)
+    {
+        return CUsableScriptObject::use(who_use);
+    };
 
 public:
     CInifile* m_ini_file;
